@@ -1,7 +1,15 @@
 // ===================================
 // upload.js — Main upload handler & form controls
+// Thành viên: Hải (Leader)
+// Nhánh: feature/frontend
 // ===================================
 
+// ── Đổi URL này nếu backend chạy port khác ──
+const CONFIG = {
+  API_PRESIGN_URL: 'http://localhost:3000/api/presign',
+};
+
+// ── DOM refs ──
 const submitBtn   = document.getElementById('submitBtn');
 const progSection = document.getElementById('progressSection');
 const progFill    = document.getElementById('progFill');
@@ -30,7 +38,55 @@ document.querySelectorAll('.fmt-btn').forEach((btn) => {
   });
 });
 
-// ── Main upload & process flow ──
+// ===================================
+// uploadFileToS3()
+// Bước 1: POST /api/presign → backend tạo presigned URL kèm metadata
+// Bước 2: PUT file thẳng lên S3 Bucket A bằng presigned URL
+// Lambda sẽ đọc metadata (resize/watermark/convert/format/email) từ S3 object
+// ===================================
+async function uploadFileToS3(file) {
+  const email = document.getElementById('emailInput').value.trim();
+
+  // Bước 1: Lấy presigned URL từ backend
+  const presignRes = await fetch(CONFIG.API_PRESIGN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename:    file.name,
+      contentType: file.type,
+      fileSize:    file.size,
+      // Metadata — server.js gắn vào S3 object, Lambda đọc từ đó
+      resize:    state.selectedOpts.has('resize')    ? 'true' : 'false',
+      watermark: state.selectedOpts.has('watermark') ? 'true' : 'false',
+      convert:   state.selectedOpts.has('convert')   ? 'true' : 'false',
+      format:    state.outputFmt.toLowerCase(),
+      email:     email,
+    }),
+  });
+
+  if (!presignRes.ok) {
+    const err = await presignRes.json().catch(() => ({}));
+    throw new Error(err.error || `Lỗi lấy presigned URL: ${presignRes.status}`);
+  }
+
+  const { presignedUrl, key } = await presignRes.json();
+
+  // Bước 2: PUT file thẳng lên S3
+  const uploadRes = await fetch(presignedUrl, {
+    method: 'PUT',
+    body:   file,
+    headers: { 'Content-Type': file.type },
+  });
+
+  if (!uploadRes.ok) throw new Error(`Upload S3 thất bại: ${uploadRes.status}`);
+
+  return key;
+}
+
+// ===================================
+// handleUpload()
+// Điều phối toàn bộ luồng upload + cập nhật UI pipeline
+// ===================================
 async function handleUpload() {
   if (!state.files.length) {
     showToast('Vui lòng chọn ít nhất 1 ảnh', 'error');
@@ -40,48 +96,50 @@ async function handleUpload() {
   const email = document.getElementById('emailInput').value.trim();
   const count = state.files.length;
 
-  submitBtn.disabled         = true;
-  progSection.style.display  = 'flex';
-  progFill.style.width       = '0%';
+  submitBtn.disabled        = true;
+  progSection.style.display = 'flex';
+  progFill.style.width      = '0%';
   resetSteps();
 
-  // ── Step 1: Upload to Bucket A ──
+  // ── Step 1: Upload thật lên Bucket A ──
   setStep(1, 'active');
-  await animateProgress(0, 30, 800, `Đang upload ${count} ảnh lên Bucket A...`);
+  await animateProgress(0, 30, 600, `Đang upload ${count} ảnh lên Bucket A...`);
 
-  /*
-   * TODO (Thành viên A): Thay đoạn simulate bên dưới bằng API call thật:
-   *
-   * const formData = new FormData();
-   * state.files.forEach(f => formData.append('images', f));
-   * formData.append('options', JSON.stringify([...state.selectedOpts]));
-   * formData.append('format', state.outputFmt);
-   * formData.append('email', email);
-   * const res = await fetch('http://localhost:3000/api/upload', { method: 'POST', body: formData });
-   * const { uploadId } = await res.json();
-   */
+  try {
+    // Upload song song tất cả file cùng lúc
+    const uploadedKeys = await Promise.all(
+      state.files.map((file) => uploadFileToS3(file))
+    );
+    console.log('✅ Uploaded keys:', uploadedKeys);
+  } catch (err) {
+    console.error('❌ Upload lỗi:', err);
+    showToast(`Upload thất bại: ${err.message}`, 'error');
+    submitBtn.disabled        = false;
+    progSection.style.display = 'none';
+    resetSteps();
+    return;
+  }
 
-  await sleep(300);
   setStep(1, 'done');
   state.stats.uploaded += count;
   state.stats.queue    += count;
   animateStatTo('stat-uploaded', state.stats.uploaded);
   animateStatTo('stat-queue',    state.stats.queue);
 
-  // ── Step 2: Lambda trigger ──
+  // ── Step 2: Lambda trigger (S3 tự bắn event, không cần gọi thêm) ──
   setStep(2, 'active');
-  await animateProgress(30, 50, 600, 'ObjectCreated event → kích hoạt Lambda...');
-  await sleep(200);
+  await animateProgress(30, 50, 700, 'ObjectCreated event → kích hoạt Lambda...');
+  await sleep(300);
   setStep(2, 'done');
 
-  // ── Step 3: Image processing ──
+  // ── Step 3: Xử lý ảnh ──
   setStep(3, 'active');
-  const opts = [...state.selectedOpts].join(', ');
-  await animateProgress(50, 75, 1200, `Đang xử lý: ${opts} → ${state.outputFmt}...`);
+  const opts = [...state.selectedOpts].join(', ') || 'không có';
+  await animateProgress(50, 75, 1200, `Lambda đang xử lý: ${opts} → ${state.outputFmt}...`);
   await sleep(400);
   setStep(3, 'done');
 
-  // ── Step 4: Save to Bucket B + DynamoDB ──
+  // ── Step 4: Lưu Bucket B + DynamoDB ──
   setStep(4, 'active');
   await animateProgress(75, 90, 700, 'Lưu vào Bucket B + ghi metadata DynamoDB...');
   await sleep(300);
@@ -93,9 +151,7 @@ async function handleUpload() {
 
   // ── Step 5: SNS Notification ──
   setStep(5, 'active');
-  const notifyLabel = email
-    ? `Gửi thông báo đến ${email}...`
-    : 'Gửi thông báo SNS...';
+  const notifyLabel = email ? `Gửi thông báo đến ${email}...` : 'Gửi thông báo SNS...';
   await animateProgress(90, 100, 400, notifyLabel);
   await sleep(200);
   setStep(5, 'done');
@@ -105,7 +161,6 @@ async function handleUpload() {
   submitBtn.disabled    = false;
   progLabel.textContent = 'Hoàn tất!';
 
-  // Reset sau 2 giây
   await sleep(2000);
   state.files           = [];
   renderPreviews();
