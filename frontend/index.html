@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ImageFlow — Hệ thống xử lý ảnh</title>
+
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Stylesheets (thứ tự quan trọng) -->
+  <link rel="stylesheet" href="css/variables.css"/>
+  <link rel="stylesheet" href="css/layout.css"/>
+  <link rel="stylesheet" href="css/components.css"/>
+  <link rel="stylesheet" href="css/upload.css"/>
+</head>
+<body>
+
+<!-- Background blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo">Image<span>Flow</span></div>
+  <div class="header-badge">
+    <div class="pulse-dot"></div>
+    Pipeline đang hoạt động
+  </div>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main>
+
+  <!-- ── LEFT: Hero + Pipeline + Stats ── -->
+  <div class="left-panel">
+
+    <div>
+      <div class="hero-label">Event-Driven Architecture</div>
+      <h1>Xử lý ảnh<br/><em>tự động,</em><br/>tức thì.</h1>
+      <p class="hero-desc">
+        Upload ảnh — hệ thống tự động resize, thêm watermark, chuyển đổi
+        định dạng ở chế độ nền. Không cần chờ đợi.
+      </p>
+    </div>
+
+    <!-- Pipeline steps -->
+    <div class="pipeline">
+      <div class="pipeline-title">Luồng xử lý</div>
+
+      <div class="step" id="step-1">
+        <div class="step-icon"></div>
+        <div class="step-text">
+          <div class="step-name">Upload vào Bucket A</div>
+          <div class="step-desc">S3 raw images storage</div>
+        </div>
+        <div class="step-status">Chờ</div>
+      </div>
+
+      <div class="step" id="step-2">
+        <div class="step-icon"></div>
+        <div class="step-text">
+          <div class="step-name">Kích hoạt Lambda</div>
+          <div class="step-desc">ObjectCreated event → SQS → Function</div>
+        </div>
+        <div class="step-status">Chờ</div>
+      </div>
+
+      <div class="step" id="step-3">
+        <div class="step-icon"></div>
+        <div class="step-text">
+          <div class="step-name">Xử lý ảnh</div>
+          <div class="step-desc">Resize · Watermark · Convert</div>
+        </div>
+        <div class="step-status">Chờ</div>
+      </div>
+
+      <div class="step" id="step-4">
+        <div class="step-icon"></div>
+        <div class="step-text">
+          <div class="step-name">Lưu Bucket B + Database</div>
+          <div class="step-desc">Processed images + metadata</div>
+        </div>
+        <div class="step-status">Chờ</div>
+      </div>
+
+      <div class="step" id="step-5">
+        <div class="step-icon"></div>
+        <div class="step-text">
+          <div class="step-name">Gửi thông báo</div>
+          <div class="step-desc">SNS → Email notification</div>
+        </div>
+        <div class="step-status">Chờ</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-uploaded">0</div>
+        <div class="stat-label">Ảnh đã upload</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-processed">0</div>
+        <div class="stat-label">Đã xử lý</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-queue">0</div>
+        <div class="stat-label">Đang xử lý</div>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ── RIGHT: Upload Form ── -->
+  <div class="right-panel">
+
+    <div class="panel-title">Upload ảnh</div>
+
+    <!-- Dropzone -->
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon"></div>
+      <div class="dz-main">Kéo thả ảnh vào đây</div>
+      <div class="dz-sub">hoặc <strong>click để chọn file</strong></div>
+      <div class="dz-formats">
+        <span class="fmt-badge">JPG</span>
+        <span class="fmt-badge">PNG</span>
+        <span class="fmt-badge">WEBP</span>
+        <span class="fmt-badge">HEIC</span>
+        <span class="fmt-badge">GIF</span>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*"/>
+    </div>
+
+    <!-- Image preview thumbnails -->
+    <div id="previewGrid"></div>
+
+    <!-- Processing options -->
+    <div>
+      <div class="panel-title" style="margin-bottom:12px">Tùy chọn xử lý</div>
+      <div class="options-grid">
+        <div class="option-card selected" data-opt="resize">
+          <div class="option-top">
+            <span class="option-icon"></span>
+            <div class="option-check">✓</div>
+          </div>
+          <div class="option-name">Resize</div>
+          <div class="option-desc">Tối đa 1200px</div>
+        </div>
+        <div class="option-card selected" data-opt="watermark">
+          <div class="option-top">
+            <span class="option-icon"></span>
+            <div class="option-check">✓</div>
+          </div>
+          <div class="option-name">Watermark</div>
+          <div class="option-desc">Logo góc phải</div>
+        </div>
+        <div class="option-card selected" data-opt="convert">
+          <div class="option-top">
+            <span class="option-icon"></span>
+            <div class="option-check">✓</div>
+          </div>
+          <div class="option-name">Convert</div>
+          <div class="option-desc">Chuyển định dạng</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output format -->
+    <div>
+      <div class="panel-title" style="margin-bottom:12px">Định dạng đầu ra</div>
+      <div class="format-row">
+        <div class="fmt-btn"        data-fmt="WEBP">WEBP</div>
+        <div class="fmt-btn active" data-fmt="JPG" >JPG</div>
+        <div class="fmt-btn"        data-fmt="PNG" >PNG</div>
+        <div class="fmt-btn"        data-fmt="AVIF">AVIF</div>
+      </div>
+    </div>
+
+    <!-- Email notification -->
+    <div class="input-wrap">
+      <label for="emailInput">Nhận thông báo qua email</label>
+      <input type="email" id="emailInput" placeholder="your@email.com"/>
+    </div>
+
+    <!-- Progress bar -->
+    <div id="progressSection">
+      <div class="prog-header">
+        <span class="prog-label" id="progLabel">Đang upload...</span>
+        <span class="prog-pct"   id="progPct">0%</span>
+      </div>
+      <div class="prog-bar-bg">
+        <div class="prog-bar-fill" id="progFill"></div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button class="btn-upload" id="submitBtn" onclick="handleUpload()">
+      Bắt đầu xử lý →
+    </button>
+
+  </div><!-- /right-panel -->
+
+</main>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Scripts (thứ tự quan trọng: state trước, utils/pipeline sau, upload cuối) -->
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/pipeline.js"></script>
+<script src="js/dropzone.js"></script>
+<script src="js/upload.js"></script>
+
+</body>
+</html>
