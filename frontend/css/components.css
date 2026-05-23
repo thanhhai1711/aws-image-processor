@@ -1,0 +1,157 @@
+/* ===================================
+   components.css — Hero, pipeline, stats
+   =================================== */
+
+/* ── Pulse dot ── */
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(61,214,140,.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(61,214,140,0); }
+}
+
+/* ── Hero section ── */
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.hero-label::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+}
+
+h1 {
+  font-family: var(--font-head);
+  font-size: clamp(36px, 4vw, 52px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+}
+
+h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-desc {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 420px;
+  line-height: 1.8;
+}
+
+/* ── Pipeline steps ── */
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pipeline-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  transition: background var(--transition);
+  opacity: .45;
+}
+
+.step.active { opacity: 1; background: rgba(124,107,255,.06); }
+.step.done   { opacity: .75; }
+
+.step-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: all .3s;
+}
+
+.step.active .step-icon {
+  background: rgba(124,107,255,.15);
+  border-color: rgba(124,107,255,.4);
+  box-shadow: 0 0 16px rgba(124,107,255,.2);
+}
+
+.step.done .step-icon {
+  background: rgba(61,214,140,.1);
+  border-color: rgba(61,214,140,.3);
+}
+
+.step-text { flex: 1; }
+.step-name { font-size: 13px; font-weight: 500; }
+.step-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.step-status {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  letter-spacing: .5px;
+}
+
+.step.active .step-status { background: rgba(124,107,255,.15); color: var(--accent); }
+.step.done   .step-status { background: rgba(61,214,140,.1);   color: var(--success); }
+
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.stat-value {
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
