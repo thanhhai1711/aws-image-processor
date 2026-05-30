@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SQS + DLQ + SNS - Thành viên 4 (feature/sns-sqs)'
+
+# ╔══════════════════════════════════════════════════╗
+# ║  FILE NÀY LÀM GÌ                                ║
+# ║  1. Tạo SQS Queue  → nhận message từ Lambda     ║
+# ║  2. Tạo DLQ        → nhận message lỗi sau 3 lần ║
+# ║  3. Tạo SNS Topic  → gửi email cho người dùng   ║
+# ╚══════════════════════════════════════════════════╝
+
+Resources:
+
+  # ══════════════════════════════════════════════
+  # 1. DEAD LETTER QUEUE — nhận message thất bại
+  # ══════════════════════════════════════════════
+  ImageProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: image-processing-dlq
+      # Message lỗi giữ 7 ngày để debug
+      MessageRetentionPeriod: 604800
+
+  # ══════════════════════════════════════════════════════════
+  # 2. SQS QUEUE chính — buffer giữa S3 event và Lambda
+  #    Nếu Lambda xử lý lỗi → retry tối đa 3 lần
+  #    Sau 3 lần vẫn lỗi → đẩy sang DLQ
+  # ══════════════════════════════════════════════════════════
+  ImageProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: image-processing-queue
+      # Thời gian Lambda có để xử lý 1 message (giây)
+      # Đặt lớn hơn Lambda timeout (Lambda timeout thường 15 phút = 900s)
+      VisibilityTimeout: 300
+      # Cấu hình retry + DLQ
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ImageProcessingDLQ.Arn
+        maxReceiveCount: 3   # thử 3 lần thất bại → đẩy vào DLQ
+
+  # ══════════════════════════════════════════
+  # 3. SNS TOPIC — gửi email thông báo
+  # ══════════════════════════════════════════
+  ImageProcessingTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: image-processing-notifications
+      # Subscription — người nhận email
+      # Sau khi deploy, AWS gửi email xác nhận → phải bấm confirm mới nhận được
+      Subscription:
+        - Protocol: email
+          Endpoint: !Sub '{{resolve:ssm:/imageprocessor/admin-email}}'
+
+Outputs:
+
+  SQSQueueUrl:
+    Value: !Ref ImageProcessingQueue
+    Description: URL SQS Queue chính
+
+  SQSQueueArn:
+    Value: !GetAtt ImageProcessingQueue.Arn
+    Description: ARN SQS Queue chính
+
+  DLQUrl:
+    Value: !Ref ImageProcessingDLQ
+    Description: URL Dead Letter Queue — vào đây xem message lỗi
+
+  DLQArn:
+    Value: !GetAtt ImageProcessingDLQ.Arn
+    Description: ARN Dead Letter Queue
+
+  SNSTopicArn:
+    Value: !Ref ImageProcessingTopic
+    Description: |
+      ARN SNS Topic — thành viên 2 điền vào Lambda Environment Variables:
+      SNS_TOPIC_ARN=<giá trị này>
