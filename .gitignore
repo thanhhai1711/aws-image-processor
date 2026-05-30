@@ -4,4 +4,7 @@ node_modules/
 .serverless/
 __pycache__/
 *.pyc
-.DS_Store
+.DS_Storeinfrastructure/terraform/.terraform/
+infrastructure/terraform/*.zip
+infrastructure/terraform/.terraform.lock.hcl
+backend/lambda/node_modules/
