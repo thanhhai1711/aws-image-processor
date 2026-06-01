@@ -206,7 +206,19 @@
   </div><!-- /right-panel -->
 
 </main>
-
+<!-- Gallery Section -->
+<div id="gallerySection" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; overflow-y:auto; padding:40px;">
+  <div style="max-width:900px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h2 style="font-family:var(--font-head); font-size:24px; font-weight:800;">Ảnh đã xử lý</h2>
+      <button onclick="closeGallery()" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; cursor:pointer; font-size:14px;">✕ Đóng</button>
+    </div>
+    <div id="galleryGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;"></div>
+  </div>
+</div>
+<button class="btn-upload" onclick="openGallery()" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); margin-bottom:12px;">
+  🖼️ Xem ảnh đã xử lý
+</button>
 <!-- Toast -->
 <div id="toast"></div>
 

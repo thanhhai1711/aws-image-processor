@@ -127,6 +127,41 @@ app.post('/api/presign', async (req, res) => {
 // ===================================
 // Khởi động server
 // ===================================
+// GET /api/images
+// Lấy danh sách ảnh đã xử lý từ DynamoDB
+// ===================================
+const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
+const dynamo = new DynamoDBClient({ region: process.env.AWS_REGION });
+
+app.get('/api/images', async (req, res) => {
+  try {
+    const result = await dynamo.send(new ScanCommand({
+      TableName: process.env.TABLE_NAME,
+      FilterExpression: '#s = :status',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':status': { S: 'PROCESSED' } },
+      Limit: 20,
+    }));
+
+    const images = result.Items.map(item => ({
+      imageId:      item.ImageId?.S,
+      originalName: item.originalName?.S,
+      processedUrl: `https://image-processor-processed-717090908624.s3.ap-southeast-1.amazonaws.com/${item.processedUrl?.S?.replace('s3://image-processor-processed-717090908624/', '')}`,
+      sizeBytes:    item.sizeBytes?.N,
+      processedAt:  item.processedAt?.S,
+      status:       item.status?.S,
+    }));
+
+    // Sắp xếp mới nhất lên đầu
+    images.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt));
+
+    res.json({ images });
+  } catch (err) {
+    console.error('❌ Lỗi lấy danh sách ảnh:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+// ===================================
 app.listen(PORT, () => {
   console.log(`🚀 Server chạy tại http://localhost:${PORT}`);
   console.log(`   Bucket A : ${process.env.BUCKET_A_NAME}`);

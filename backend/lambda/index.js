@@ -39,15 +39,25 @@ exports.handler = async (event) => {
         }
 
         if (isWatermark) {
-            const svgWatermark = `
-                <svg width="300" height="100">
-                    <text x="10" y="40" font-size="25" fill="white" opacity="0.6">Bản quyền của Nhóm 6</text>
-                </svg>`;
+            const { width, height } = await sharp(imageBuffer).metadata();
+            const wmWidth  = Math.min(200, Math.floor(width  * 0.3));
+            const wmHeight = Math.min(50,  Math.floor(height * 0.08));
+            const fontSize = Math.max(12, Math.floor(wmHeight * 0.6));
+
+            const svgWatermark = Buffer.from(`
+                <svg width="${wmWidth}" height="${wmHeight}">
+                    <text x="5" y="${Math.floor(wmHeight * 0.75)}" 
+                        font-size="${fontSize}" 
+                        font-family="Arial" 
+                        fill="white" 
+                        opacity="0.6">© Đề tài 6</text>
+                </svg>`);
+
             imagePipeline = imagePipeline.composite([{
-                input: Buffer.from(svgWatermark),
+                input: svgWatermark,
                 gravity: 'southeast',
             }]);
-        }
+}
 
         let finalContentType = response.ContentType || 'image/jpeg';
         let finalExtension   = objectKey.split('.').pop();
@@ -167,3 +177,37 @@ const streamToBuffer = (stream) =>
         stream.on('error', reject);
         stream.on('end',   () => resolve(Buffer.concat(chunks)));
     });
+// ── Gallery ──
+async function openGallery() {
+    document.getElementById('gallerySection').style.display = 'block';
+    document.getElementById('galleryGrid').innerHTML = '<p style="color:var(--muted)">Đang tải...</p>';
+
+try {
+    const res = await fetch('http://localhost:3000/api/images');
+    const { images } = await res.json();
+
+    if (!images.length) {
+        document.getElementById('galleryGrid').innerHTML = '<p style="color:var(--muted)">Chưa có ảnh nào được xử lý</p>';
+        return;
+    }
+
+    document.getElementById('galleryGrid').innerHTML = images.map(img => `
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <img src="${img.processedUrl}" style="width:100%; aspect-ratio:1; object-fit:cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%2250%25%22 font-size=%2240%22>🖼️</text></svg>'"/>
+        <div style="padding:10px;">
+        <div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${img.originalName}</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">${(img.sizeBytes/1024).toFixed(1)} KB</div>
+        <div style="font-size:11px; color:var(--muted);">${new Date(img.processedAt).toLocaleString('vi-VN')}</div>
+        <a href="${img.processedUrl}" download style="display:block; margin-top:8px; text-align:center; padding:6px; background:rgba(124,107,255,.1); border:1px solid rgba(124,107,255,.3); border-radius:6px; color:var(--accent); font-size:11px; text-decoration:none;">⬇️ Tải về</a>
+        </div>
+    </div>
+    `).join('');
+
+} catch (err) {
+    document.getElementById('galleryGrid').innerHTML = `<p style="color:var(--danger)">Lỗi: ${err.message}</p>`;
+}
+}
+
+function closeGallery() {
+    document.getElementById('gallerySection').style.display = 'none';
+}

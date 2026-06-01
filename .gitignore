@@ -8,3 +8,5 @@ __pycache__/
 infrastructure/terraform/*.zip
 infrastructure/terraform/.terraform.lock.hcl
 backend/lambda/node_modules/
+infrastructure/terraform/terraform.tfstate
+infrastructure/terraform/terraform.tfstate.backup
