@@ -6,7 +6,7 @@
 
 // ── Đổi URL này nếu backend chạy port khác ──
 const CONFIG = {
-  API_PRESIGN_URL: 'http://localhost:3000/api/presign',
+  API_PRESIGN_URL: 'https://aws-image-processor-1.onrender.com',
 };
 
 // ── DOM refs ──
@@ -166,4 +166,39 @@ async function handleUpload() {
   renderPreviews();
   progSection.style.display = 'none';
   progFill.style.width      = '0%';
+}
+// ── Gallery ──
+async function openGallery() {
+  document.getElementById('gallerySection').style.display = 'block';
+  document.getElementById('galleryGrid').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px;">Đang tải...</p>';
+
+  try {
+    const res = await fetch('http://localhost:3000/api/images');
+    const { images } = await res.json();
+
+    if (!images.length) {
+      document.getElementById('galleryGrid').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px;">Chưa có ảnh nào được xử lý</p>';
+      return;
+    }
+
+    document.getElementById('galleryGrid').innerHTML = images.map(img => `
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <img src="${img.processedUrl}" style="width:100%; aspect-ratio:1; object-fit:cover;"
+            onerror="this.style.display='none'"/>
+        <div style="padding:10px;">
+          <div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${img.originalName}</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:4px;">${(img.sizeBytes/1024).toFixed(1)} KB</div>
+          <div style="font-size:11px; color:var(--muted);">${new Date(img.processedAt).toLocaleString('vi-VN')}</div>
+          <a href="${img.processedUrl}" download style="display:block; margin-top:8px; text-align:center; padding:6px; background:rgba(124,107,255,.1); border:1px solid rgba(124,107,255,.3); border-radius:6px; color:var(--accent); font-size:11px; text-decoration:none;">⬇️ Tải về</a>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    document.getElementById('galleryGrid').innerHTML = `<p style="color:var(--danger); text-align:center; padding:20px;">Lỗi: ${err.message}</p>`;
+  }
+}
+
+function closeGallery() {
+  document.getElementById('gallerySection').style.display = 'none';
 }
