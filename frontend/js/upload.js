@@ -6,7 +6,7 @@
 
 // ── Đổi URL này nếu backend chạy port khác ──
 const CONFIG = {
-  API_PRESIGN_URL: 'https://aws-image-processor-1.onrender.com',
+  API_PRESIGN_URL: 'https://aws-image-processor-1.onrender.com/api/presign',
 };
 
 // ── DOM refs ──
@@ -173,7 +173,7 @@ async function openGallery() {
   document.getElementById('galleryGrid').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px;">Đang tải...</p>';
 
   try {
-    const res = await fetch('http://localhost:3000/api/images');
+    const res = await fetch('https://aws-image-processor-1.onrender.com/api/images');
     const { images } = await res.json();
 
     if (!images.length) {
