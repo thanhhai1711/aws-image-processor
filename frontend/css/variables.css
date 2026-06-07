@@ -1,41 +1,51 @@
-/* ===================================
-   variables.css — Design tokens
-   =================================== */
 
 :root {
-  --bg:        #09090f;
-  --surface:   #111118;
-  --surface2:  #1a1a24;
-  --border:    #2a2a38;
-  --accent:    #7c6bff;
-  --accent2:   #b06bff;
-  --gold:      #f0c060;
-  --success:   #3dd68c;
-  --danger:    #ff5f6d;
-  --text:      #f0eff8;
-  --muted:     #7e7d96;
+  /* Palette */
+  --bg:        #F5F6FA;
+  --surface:   #FFFFFF;
+  --surface2:  #1C1F2A;
+  --surface3:  #252836;
+  --border:    rgba(255,255,255,.07);
+  --border2:   rgba(255,255,255,.13);
 
-  --font-head: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* Brand */
+  --accent:    #4F7EFF;
+  --accent2:   #8B5FFF;
+  --accent-glow: rgba(79,126,255,.25);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  /* Semantic */
+  --gold:      #F5C842;
+  --success:   #34D399;
+  --danger:    #F87171;
+  --warning:   #FBBF24;
 
-  --transition: .2s ease;
+  /* Text */
+  --text:      #111827;
+  --text2:     #9497A8;
+  --text3:     #5A5D6E;
+
+  /* Fonts */
+  --font-head: 'Cabinet Grotesk', sans-serif;
+  --font-body: 'Instrument Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-xs:  6px;
+  --radius-sm:  10px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --transition: .18s ease;
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
@@ -45,15 +55,5 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
-}
-
-/* Noise texture overlay */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-  opacity: .5;
+  -webkit-font-smoothing: antialiased;
 }
