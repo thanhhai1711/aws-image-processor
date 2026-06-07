@@ -7,6 +7,14 @@ const s3     = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-1'
 const dynamo = new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
 const sns    = new SNSClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
 
+const streamToBuffer = (stream) =>
+    new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on('data',  (chunk) => chunks.push(chunk));
+        stream.on('error', reject);
+        stream.on('end',   () => resolve(Buffer.concat(chunks)));
+    });
+
 exports.handler = async (event) => {
     const bucketName = event.Records[0].s3.bucket.name;
     const objectKey  = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
@@ -20,7 +28,7 @@ exports.handler = async (event) => {
         const imageBuffer      = await streamToBuffer(response.Body);
         const fileSizeOriginal = event.Records[0].s3.object.size;
 
-        // 2. Đọc tùy chọn từ metadata (Hải gắn vào qua server.js)
+        // 2. Đọc tùy chọn từ metadata
         const meta         = response.Metadata || {};
         const isResize     = meta['resize']    === 'true';
         const isWatermark  = meta['watermark'] === 'true';
@@ -39,24 +47,29 @@ exports.handler = async (event) => {
         }
 
         if (isWatermark) {
+            const path = require('path');
             const { width, height } = await sharp(imageBuffer).metadata();
-            const wmWidth  = Math.min(200, Math.floor(width  * 0.3));
-            const wmHeight = Math.min(50,  Math.floor(height * 0.08));
-            const fontSize = Math.max(12, Math.floor(wmHeight * 0.55));
+            const wmWidth  = Math.max(160, Math.floor(width  * 0.25));
+            const wmHeight = Math.max(40,  Math.floor(height * 0.07));
+            const fontSize = Math.max(14, Math.floor(wmHeight * 0.5));
 
-            const svgWatermark = Buffer.from(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="${wmWidth}" height="${wmHeight}">
-                    <rect width="100%" height="100%" fill="black" opacity="0.3" rx="4"/>
-                    <text x="50%" y="65%"
-                        text-anchor="middle"
-                        font-size="${fontSize}px"
-                        font-family="serif"
-                        fill="white">© De tai 6</text>
-                </svg>`);
+            process.env.FONTCONFIG_PATH = path.join(__dirname, 'fonts');
+
+            const svgText = Buffer.from(
+                '<svg xmlns="http://www.w3.org/2000/svg"' +
+                ` width="${wmWidth}" height="${wmHeight}">` +
+                '<rect width="100%" height="100%" fill="black" fill-opacity="0.45" rx="4"/>' +
+                `<text x="${Math.floor(wmWidth/2)}" y="${Math.floor(wmHeight*0.68)}"` +
+                ` text-anchor="middle" font-size="${fontSize}"` +
+                ' font-family="DejaVu Sans" fill="white">' +
+                '© De tai 6</text>' +
+                '</svg>'
+            );
 
             imagePipeline = imagePipeline.composite([{
-                input: svgWatermark,
+                input:   svgText,
                 gravity: 'southeast',
+                blend:   'over',
             }]);
         }
 
@@ -93,7 +106,7 @@ exports.handler = async (event) => {
 
         console.log(`✅ Lưu Bucket B: s3://${BUCKET_B}/${newObjectKey}`);
 
-        // 5. Ghi metadata vào DynamoDB (thành viên 3)
+        // 5. Ghi metadata vào DynamoDB
         await dynamo.send(new PutItemCommand({
             TableName: process.env.TABLE_NAME,
             Item: {
@@ -112,12 +125,8 @@ exports.handler = async (event) => {
 
         console.log(`✅ Ghi DynamoDB: ImageId=${imageId}`);
 
-        // ════════════════════════════════════════════════
-        // 6. GỬI THÔNG BÁO SNS (thành viên 4)
-        // SNS_TOPIC_ARN set trong Lambda env variables
-        // ════════════════════════════════════════════════
+        // 6. Gửi thông báo SNS
         if (email) {
-            // Gửi email cho người dùng biết ảnh xử lý xong
             await sns.send(new PublishCommand({
                 TopicArn: process.env.SNS_TOPIC_ARN,
                 Subject:  '✅ Ảnh của bạn đã được xử lý xong!',
@@ -136,14 +145,7 @@ exports.handler = async (event) => {
                     `Trân trọng,`,
                     `Hệ thống xử lý ảnh - Nhóm 6`,
                 ].join('\n'),
-                MessageAttributes: {
-                    email: {
-                        DataType:    'String',
-                        StringValue: email,
-                    },
-                },
             }));
-
             console.log(`✅ Gửi SNS thành công đến: ${email}`);
         }
 
@@ -151,8 +153,6 @@ exports.handler = async (event) => {
 
     } catch (error) {
         console.error('❌ Lambda lỗi:', error);
-
-        // Ghi FAILED vào DynamoDB để dễ debug
         try {
             await dynamo.send(new PutItemCommand({
                 TableName: process.env.TABLE_NAME,
@@ -166,15 +166,6 @@ exports.handler = async (event) => {
         } catch (dbErr) {
             console.error('❌ Ghi lỗi DynamoDB thất bại:', dbErr.message);
         }
-
-        throw error; // SQS retry → sau 3 lần → DLQ
+        throw error;
     }
 };
-
-const streamToBuffer = (stream) =>
-    new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on('data',  (chunk) => chunks.push(chunk));
-        stream.on('error', reject);
-        stream.on('end',   () => resolve(Buffer.concat(chunks)));
-    });
