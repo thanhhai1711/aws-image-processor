@@ -59,9 +59,9 @@ Lambda Function (Node.js 20, 1GB RAM)
 ## 👥 Phân công nhiệm vụ (Team 4 người)
 
 - **Thành viên 1 - Hải (Leader):** Xây dựng giao diện Frontend (HTML/JS) và API tạo Presigned URL. Nhánh: `feature/frontend`
-- **Thành viên 2:** Viết logic Lambda Function xử lý ảnh (Resize, Watermark, WebP). Nhánh: `feature/lambda-processing`
-- **Thành viên 3:** Cấu hình hạ tầng S3 Buckets và bảng DynamoDB. Nhánh: `feature/storage-db`
-- **Thành viên 4:** Thiết lập hàng đợi SQS, DLQ xử lý lỗi và hệ thống thông báo SNS. Nhánh: `feature/sns-sqs`
+- **Thành viên 2: - Dũng :** Viết logic Lambda Function xử lý ảnh (Resize, Watermark, WebP). Nhánh: `feature/lambda-processing`
+- **Thành viên 3: - Hoàng :** Cấu hình hạ tầng S3 Buckets và bảng DynamoDB. Nhánh: `feature/storage-db`
+- **Thành viên 4: - Thuỷ :** Thiết lập hàng đợi SQS, DLQ xử lý lỗi và hệ thống thông báo SNS. Nhánh: `feature/sns-sqs`
 
 ---
 
